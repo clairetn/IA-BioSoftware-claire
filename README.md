@@ -82,12 +82,9 @@ Le dépôt contient deux parties principales :
 
 Consulter les consignes associées à chaque partie du projet :
 
-- [Instructions du TP Python](./python/instruction.md)
-- [Instructions du TP R](./R/instruction.md)
+- [Instructions du TP Python](./tp_python/instruction.md)
+- [Instructions du TP R](./tp_r/instruction.md)
 - [Instructions de bonnes pratiques pour le dépôt GitHub](./instruction_bonne_pratique.md)
-
-> **Note**  
-> Adaptez les chemins `./python/instruction.md` et `./R/instruction.md` si les noms réels de vos dossiers sont différents.
 
 ### Instruction pour l'atelier
 
