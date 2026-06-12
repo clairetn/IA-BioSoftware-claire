@@ -1,46 +1,76 @@
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from scipy.stats import zscore
 
-# --- 1. Simulation de données (à remplacer par vos données réelles) ---
-np.random.seed(42)
-n_genes = 1246
-n_timepoints = 30  # Exemple : 30 points temporels (0 à 150 min, pas de 5 min)
-timepoints = np.arange(0, n_timepoints * 5, 5)  # 0, 5, 10, ..., 145 min
+# --- 1. Load the data from the Excel file ---
+file_path = "../data/pgen.1006453.s002.xlsx"  # Remplace par le chemin de ton fichier
+try:
+    # Lire le fichier en ignorant les extensions non supportées
+    data = pd.read_excel(file_path, engine="openpyxl")
+except Exception as e:
+    print(f"Erreur lors de la lecture du fichier Excel : {e}")
+    exit(1)
 
-# Simulation d'une matrice d'expression (1246 gènes × 30 temps)
-expression_matrix = np.random.randn(n_genes, n_timepoints) * 0.5 + 1.0  # Bruit gaussien + offset
+# --- 2. Extraire les colonnes temporelles (0, 5, 10, ..., 245) ---
+# Filtrer les colonnes qui sont des entiers (temps en minutes)
+time_columns = []
+for col in data.columns:
+    try:
+        # Vérifier si la colonne est un entier (ex: 0, 5, 10, ...)
+        int(col)
+        time_columns.append(col)
+    except (ValueError, TypeError):
+        continue
 
-# Ajout d'un motif périodique (exemple : pic à t=20, 40, 60, ... min)
-for i in range(n_genes):
-    peak_time = np.random.choice([10, 20, 30, 40, 50, 60])  # Pic aléatoire entre 10 et 60 min
-    expression_matrix[i, :] += 2.0 * np.exp(-(timepoints - peak_time)**2 / (2 * 10**2))  # Pic gaussien
+# Si aucune colonne temporelle n'est trouvée, essayer une autre approche
+if not time_columns:
+    # Supposer que les colonnes temporelles sont les dernières colonnes numériques
+    numeric_cols = data.select_dtypes(include=[np.number]).columns.tolist()
+    time_columns = sorted([int(col) for col in numeric_cols if str(col).isdigit()])
 
-# --- 2. Normalisation en z-score (par gène) ---
-expression_zscore = zscore(expression_matrix, axis=1)
+if not time_columns:
+    print("Aucune colonne temporelle trouvée. Vérifie le format du fichier.")
+    exit(1)
 
-# --- 3. Tri des gènes par temps de pic d'expression ---
-peak_times = timepoints[np.argmax(expression_zscore, axis=1)]  # Temps du pic pour chaque gène
-sorted_indices = np.argsort(peak_times)  # Tri par temps de pic croissant
-expression_sorted = expression_zscore[sorted_indices, :]
+# Extraire la matrice d'expression (gènes x temps)
+expression_matrix = data[time_columns].values
 
-# --- 4. Création de la heatmap ---
+# Vérifier que la matrice n'est pas vide
+if expression_matrix.size == 0:
+    print("La matrice d'expression est vide. Vérifie les colonnes temporelles.")
+    exit(1)
+
+# --- 3. Sort genes by peak expression time ---
+# Utiliser la colonne 'Figure2A_order_peaktime' si elle existe
+if 'Figure2A_order_peaktime' in data.columns:
+    peak_times = data['Figure2A_order_peaktime'].values
+    sorted_indices = np.argsort(peak_times)
+else:
+    # Sinon, calculer le temps de pic à partir de la matrice
+    peak_indices = np.argmax(expression_matrix, axis=1)
+    timepoints = sorted([int(col) for col in time_columns])
+    peak_times = np.array(timepoints)[peak_indices]
+    sorted_indices = np.argsort(peak_times)
+
+expression_sorted = expression_matrix[sorted_indices, :]
+
+# --- 4. Plot the heatmap with blue to yellow colormap ---
 plt.figure(figsize=(12, 8))
 sns.heatmap(
     expression_sorted,
-    cmap="RdBu_r",  # Colormap rouge-bleu (comme dans l'article)
+    cmap="YlOrBr_r",  # Bleu à jaune
     center=0,
     vmin=-3,
     vmax=3,
     xticklabels=5,  # Affiche un label tous les 5 points temporels
-    yticklabels=False,  # Masque les labels des gènes (trop nombreux)
-    cbar_kws={"label": "Z-score (expression)"}
+    yticklabels=False,
+    cbar_kws={"label": "Expression (Normalized)"}
 )
 
-# --- 5. Personnalisation ---
-plt.title("Figure 2A : 1246 gènes périodiques chez S. cerevisiae\n(Ordonnés par temps de pic d'expression)", pad=20)
-plt.xlabel("Temps (min)")
-plt.xticks(np.arange(0, n_timepoints, 5), timepoints[::5])  # Labels des temps
+# --- 5. Customize the plot ---
+plt.title("Figure 2A: Periodic Genes in S. cerevisiae\n(Sorted by Peak Expression Time)", pad=20)
+plt.xlabel("Time (min)")
+plt.xticks(np.arange(0, len(time_columns), 5), time_columns[::5])
 plt.tight_layout()
 plt.show()
