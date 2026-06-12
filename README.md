@@ -25,6 +25,9 @@
 - <https://moodle.france-bioinformatique.fr/course/view.php?id=41>
 - [https://ifb-elixirfr.github.io/AI-for-scripting-bioanalysis/](https://ifb-elixirfr.github.io/AI-for-scripting-bioanalysis/)
 
+- [https://iabioscripting.univ-lyon1.fr/](https://iabioscripting.univ-lyon1.fr/)
+
+
 ## Organisation
 
 Le colloque est organisé par les trois organisations suivantes :
